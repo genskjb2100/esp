@@ -11,9 +11,20 @@
 |
 */
 
-Route::get('/', 'WelcomeController@index');
+Route::get('/', function(){
+	if (Auth::check()):
+        return redirect('user/dashboard');
+    else:
+        return View::make('user.user_login');
+    endif;
+});
 
-Route::get('home', 'HomeController@index');
+Route::post('/user/login', 'User\LoginController@authenticate');
+
+
+
+
+
 
 Route::controllers([
 	'auth' => 'Auth\AuthController',
