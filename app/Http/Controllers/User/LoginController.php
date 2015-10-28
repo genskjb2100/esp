@@ -7,6 +7,10 @@ use Illuminate\Support\Facades\Redirect;
 
 use ESP\LoginAttempts;
 use ESP\CustomClass\SomeClass;
+use ESP\User;
+use ESP\Company;
+use ESP\Office;
+
 
 // for DB connection. Edit also .env file in /var/www/laravel
 use DB;
@@ -23,6 +27,9 @@ class LoginController extends Controller {
 	var $messages = array('invalid' => 'Invalid Username or Password.',
 										'disabled' => 'Your account is currently disabled. Please contact HR.',
 										'valid' => 'Your account is validated.',
+										'contact_hr' => 'Your Active Directory account does not have the required fields. Please contact HR.',
+										'contact_it' => 'Your account does not have the required details. Please contact IT.',
+										'redirect' => 'Your account is being redirected.',
 									);
 	var $response_text;
 	var $response_status;
@@ -49,11 +56,15 @@ class LoginController extends Controller {
 								328226,	//Disabled, Smartcard Required, Password Doesn't Expire & Not Required
 							);
 	var $ip;
+	var $helpers;
+	var $user_info = array();
+	var $wfh = FALSE;
 
 	public function __construct() {
 		// Important. Set the timezone to PH Manila GMT +8 hours
 		date_default_timezone_set('Asia/Manila');
 		$ipadd = new SomeClass();
+		$helpers = $ipadd;
 		$this->ip = $ipadd->getIpAddress();
 	}
 
@@ -63,23 +74,101 @@ class LoginController extends Controller {
 		$adldap = new adLDAP();
 		$username = Request::input('username');
 		$password = md5(Request::input('password'));
-		
 		$authUser = $adldap->authenticate($username, Request::input('password'));
-		/*$accountStatus = $adldap->user()->info($username, array('UserAccountControl'))[0]['useraccountcontrol'][0];
-
-		if(in_array($accountStatus, $activeAccountStatusCode) && !in_array($accountStatus, $inactiveAccountStatusCode)):
-			$isAccountActive = TRUE;
-		else:
-			$isAccountActive = FALSE;
-		endif;*/
 
 		if($authUser && $this->login_status):
+			$user_fields = array(
+					'displayname', 'mail','company', 'physicaldeliveryofficename', 'givenname', 'sn'
+				);
 			
+			$this->user_info = $adldap->user()->info($username, $user_fields); //working
+			$this->_processUser($username, $password);
+
+			return array("status" => $this->response_status, "message" => $this->response_text);
 		else:
+			$this->login_status = FALSE;
 			$this->_check_failed_login_duration($username);
-			//return array("status" => FALSE, "message" => $this->messages['invalid']);
 			return array("status" => $this->response_status, "message" => $this->response_text);
 		endif;
+	}
+
+	private function _processUser($username, $password){
+		
+		$results = User::get_employee_username_password($username, $password);
+		if(count($results) > 0):
+
+			$this->user_info = array(
+					'username' => $results->username, 
+					'user_id' => $results->id, 
+					'first_name' => $results->first_name,
+					'last_name' => $results->last_name,
+					'user_email' => $results->email, 
+					'user_password' => $results->password, 
+					'nickname' => $results->nickname,
+					'disabled' => $results->disabled, 
+					'role_id' => $results->role_id,
+					'birthdate' => $results->birthdate,
+					'hidden' => $results->hidden, 
+					'work_from_home' => $results->work_from_home,
+				);
+
+			$fla = LoginAttempts::IP($this->ip)->Username($username)->orderBy('attempts', 'DESC')->first();
+			if($fla):
+				$this->_saveLoginAttempt($username, 1,"", TRUE);
+			else:
+				$this->_createLoginAttempt($username, 1, "", TRUE);
+			endif;
+
+			$this->login_status = TRUE;
+			$this->wfh = $results->work_from_home;
+			$this->response_text = $this->messages['redirect'];
+			$this->response_status = TRUE;
+
+			//$this->_userAuthenticate($this->user_info);
+
+		else:
+
+			$cui = SomeClass::checkUserInfo($this->user_info, $this->messages);			
+			if ($cui):
+				$this->response_status = $cui['response_status'];
+				$this->response_text = $cui['response_text'];
+				$this->login_status = false;
+
+			else:
+				$userinfo = $this->user_info;
+				if (isset($userinfo)):
+					$this->user_info = array(
+						'username' => $username, 
+						'password' => $password,
+						'user_email' => $userinfo[0]["mail"][0], 
+						'nickname' => $userinfo[0]["displayname"][0],
+						'first_name' => $userinfo[0]['givenname'][0],
+						'last_name' => $userinfo[0]['sn'][0],
+					);
+					
+					$company = $userinfo[0]["company"][0];
+					$office = $userinfo[0]["physicaldeliveryofficename"][0];
+					$this->_companyOfficeCreate($company, $office);
+					echo "a";
+					print_r(User::getByUsername($username));
+
+				endif;
+			endif;
+		endif;
+
+	}
+
+	private function _companyOfficeCreate($company, $office){
+		$c = Company::firstOrCreate(['company_name' => $company]);
+		$o = Office::firstOrCreate(['office_name' => $office]);
+
+		return CompanyOffice::firstOrCreate(['company_id' => $c->company_id, 'office_id' => $o->office_id]);
+	}
+
+	private function _userAuthenticate($user_info){
+		SomeClass::userInitSession($user_info);
+		$user = User::find($user_info['user_id']); // user_id test 1 is mark.tan
+		Auth::login($user);
 	}
 
 	private function _check_failed_login_duration($username) {
@@ -93,7 +182,9 @@ class LoginController extends Controller {
 
         	if ($attempts >= 10):
         		if($elapsed_minute >= 30):
-
+        			$this->_saveLoginAttempt($username, 1,"");
+        			$this->response_text = $this->messages['invalid'];
+        			$this->response_status = "failed";
         		else:
         			$this->_saveLoginAttempt($username, ++$attempts,"blocked");	
         			$this->response_text = "Max Login Attempts Reached. Please try again after 30 minutes.";
@@ -101,20 +192,34 @@ class LoginController extends Controller {
         		endif;
         	else:
         		$this->_saveLoginAttempt($username, ++$attempts,"");
+        		$this->response_text = $this->messages['invalid'];
+        		$this->response_status = "failed";
         	endif;
         else:
-        	$this->_saveLoginAttempt($username, 1, "");
+        	$this->_createLoginAttempt($username, 1, "");
+        	$this->response_text = $this->messages['invalid'];
+        	$this->response_status = "failed";
         endif;
 
     }
 
+    private function _saveLoginAttempt($username, $attempts, $status, $success = false){
+    	$data = array('attempt_status' => $status, 'attempts' => $attempts, 'login_page_name' => 'user');
+    	$ll = ($success) ? 'success_last_login' : 'failed_last_login';
+    	$data[$ll] = date("Y-m-d H:i:s");
+    	$pla = LoginAttempts::where("username", "=", $username)->update($data);
+    }
 
-    private function _saveLoginAttempt($username, $attempts, $status){
-    	$la = LoginAttempts::firstorcreate([
-    		"username" => $username,
+    private function _createLoginAttempt($username, $attempts, $status, $success = false){
+    	$data = array("username" => $username,
     		"ip" => $this->ip,
-    		]);
-    	$pla = LoginAttempts::where("login_attempt_id", "=", $la->login_attempt_id)->update(array('attempt_status' => $status, 'failed_last_login' => date("Y-m-d H:i:s"), 'attempts' => $attempts, 'login_page_name' => 'user'));
+    		'attempt_status' => $status, 
+    		'attempts' => $attempts, 
+    		'login_page_name' => 'user');
+    	$ll = ($success) ? 'success_last_login' : 'failed_last_login';
+    	$data[$ll] = date("Y-m-d H:i:s");
+
+    	$la = LoginAttempts::create($data);
     }
 
     private function _getElapsedMinute($from){
