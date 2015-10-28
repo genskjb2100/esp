@@ -1,0 +1,28 @@
+#clock {
+	background-image: url("http://demo.web3designs.com/images/clockBg.png");
+	height: 200px;
+	position: relative;
+	width: 200px
+}
+#clock div {
+	position: absolute;
+	left:50%
+}
+#clock img[src*="second"] {
+	transition: transform 600000s linear 0s;
+}
+#clock:target img[src*="second"] {
+	transform: rotate(3600000deg);
+}
+#clock img[src*="minute"] {
+	transition: transform 360000s linear 0s;
+}
+#clock:target img[src*="minute"] {
+	transform: rotate(36000deg);
+}
+#clock img[src*="hour"] {
+	transition: transform 216000s linear 0s;
+}
+#clock:target img[src*="hour"] {
+	transform: rotate(360deg);
+}

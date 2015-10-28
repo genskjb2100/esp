@@ -1,0 +1,5 @@
+suites:
+    main:
+        namespace: ESP
+        psr4_prefix: ESP
+        src_path: app
