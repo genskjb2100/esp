@@ -27,6 +27,8 @@ class CreateSchedulesTable extends Migration {
 			$table->time('fri_start');
 			$table->time('fri_stop');
 			$table->time('sat_start');
+			$table->time('sat_stop');
+			$table->time('sun_start');
 			$table->time('sun_stop');
 			$table->integer('user_id')->unsigned();
 			$table->foreign('user_id')->references('id')->on('users')->onUpdate('cascade')->onDelete('cascade');

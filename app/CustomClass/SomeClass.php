@@ -48,6 +48,8 @@ class Someclass {
         Session::put('hidden', $user_info['disabled']);
         Session::put('work_from_home', $user_info['work_from_home']);
         Session::put('username', $user_info['username']);
+        Session::put('first_name', $user_info['first_name']);
+        Session::put('last_name', $user_info['last_name']);
     }
 
     public function clientInitSession($data){

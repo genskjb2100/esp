@@ -42,6 +42,7 @@ function resetAlertType(alert_class)
 }
 
 $(function(){
+  //refresh_digital_clock();
  $("#login_form").submit(function(e){
     e.preventDefault();
 
@@ -54,7 +55,12 @@ $(function(){
         type: $(this).attr("method"),
         data: $(this).serialize(),
       }).done(function(msg){
-        console.log(msg);
+        //var obj = JSON.parse(msg);
+        if(msg.status == 'success'){
+          location.reload();
+        }else{
+          $(".alert").text(msg.message).addClass('alert-danger').show();
+        }
       });
     }
 

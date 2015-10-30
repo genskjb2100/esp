@@ -19,6 +19,26 @@ Route::get('/', function(){
     endif;
 });
 
+Route::get('/user/login/', function(){
+	return redirect('/');
+});
+
+Route::any('/user/', function(){
+	return redirect('/');
+});
+
+Route::get('user/dashboard', 'User\DashboardController@index');
+
+Route::get('/logout', function(){
+	Auth::logout();
+	return redirect('/');
+});
+
+Route::get('/user/logout/', function(){
+	return redirect('/logout');
+});
+
+
 Route::post('/user/login', 'User\LoginController@authenticate');
 
 

@@ -30,8 +30,10 @@ class CreateUsersTable extends Migration {
 			$table->date('birthdate');
 			$table->boolean("hidden");
 			$table->boolean("refresh");
+			$table->boolean("disabled");
 			$table->boolean("expand_all");
 			$table->boolean("work_from_home");
+			$table->integer("office_id");
 			$table->rememberToken();
 			$table->timestamps();
 		});

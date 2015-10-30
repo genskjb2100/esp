@@ -9,7 +9,11 @@ use ESP\LoginAttempts;
 use ESP\CustomClass\SomeClass;
 use ESP\User;
 use ESP\Company;
-use ESP\Office;
+use ESP\Offices;
+use ESP\CompanyOffice;
+use ESP\CompanyUser;
+use ESP\RoleUser;
+use ESP\Schedule;
 
 
 // for DB connection. Edit also .env file in /var/www/laravel
@@ -30,6 +34,8 @@ class LoginController extends Controller {
 										'contact_hr' => 'Your Active Directory account does not have the required fields. Please contact HR.',
 										'contact_it' => 'Your account does not have the required details. Please contact IT.',
 										'redirect' => 'Your account is being redirected.',
+										'no_remote' => 'You are not authorised to login remotely. If this is incorrect please contact HR.',
+
 									);
 	var $response_text;
 	var $response_status;
@@ -69,27 +75,56 @@ class LoginController extends Controller {
 	}
 
 	public function authenticate(){
+		/*if (Request::ajax()):*/
+			$isAccountActive = FALSE;
+			$adldap = new adLDAP();
+			$username = Request::input('username');
+			$password = md5(Request::input('password'));
+			$authUser = $adldap->authenticate($username, Request::input('password'));
+
+			if($authUser && $this->login_status):
+				$user_fields = array(
+						'displayname', 'mail','company', 'physicaldeliveryofficename', 'givenname', 'sn'
+					);
+				
+				$this->user_info = $adldap->user()->info($username, $user_fields); //working
+				$this->_processUser($username, $password);
+
+				//return array("status" => $this->response_status, "message" => $this->response_text);
+			else:
+				$this->login_status = FALSE;
+				$this->_check_failed_login_duration($username);
+				//return array("status" => $this->response_status, "message" => $this->response_text);
+			endif;
+
+			//todo WFH. SEARCH FOR VLANS
+			if ($this->wfh) :
+				// if user is allowed to work from home then check his IP
+				$user_ip_address = Request::getClientIp(true);
+				$tmpIP = $user_ip_address;
+	            $pos = strrpos($tmpIP, '.');
+	            $tmpIP = substr($tmpIP, 0, $pos). '.';
+				
+				$qry2 = "
+					SELECT * FROM vlans v 
+					INNER JOIN offices o ON v.office_id = o.office_id 
+					WHERE subnet like '".$tmpIP."%';
+				";
+				$res2 = DB::select($qry2);
+				
+				if (count($res2) == 0 && ip2long($user_ip_address) != ip2long("127.0.0.1")) :
+					$this->login_status = FALSE;
+					$this->response_text = 'You are not authorised to login remotely. If this is incorrect please contact HR.';
+					$this->response_status = 'failed';
+					Auth::logout();
+					
+				endif;
+			endif;
+			return array("status" => $this->response_status, "message" => $this->response_text);
+		/*else:
+			return array("status" => $this->response_status, "message" => $this->response_text);
+		endif;*/
 		
-		$isAccountActive = FALSE;
-		$adldap = new adLDAP();
-		$username = Request::input('username');
-		$password = md5(Request::input('password'));
-		$authUser = $adldap->authenticate($username, Request::input('password'));
-
-		if($authUser && $this->login_status):
-			$user_fields = array(
-					'displayname', 'mail','company', 'physicaldeliveryofficename', 'givenname', 'sn'
-				);
-			
-			$this->user_info = $adldap->user()->info($username, $user_fields); //working
-			$this->_processUser($username, $password);
-
-			return array("status" => $this->response_status, "message" => $this->response_text);
-		else:
-			$this->login_status = FALSE;
-			$this->_check_failed_login_duration($username);
-			return array("status" => $this->response_status, "message" => $this->response_text);
-		endif;
 	}
 
 	private function _processUser($username, $password){
@@ -122,9 +157,9 @@ class LoginController extends Controller {
 			$this->login_status = TRUE;
 			$this->wfh = $results->work_from_home;
 			$this->response_text = $this->messages['redirect'];
-			$this->response_status = TRUE;
+			$this->response_status = "success";
 
-			//$this->_userAuthenticate($this->user_info);
+			$this->_userAuthenticate($this->user_info);
 
 		else:
 
@@ -139,28 +174,63 @@ class LoginController extends Controller {
 				if (isset($userinfo)):
 					$this->user_info = array(
 						'username' => $username, 
-						'password' => $password,
+						'user_password' => $password,
 						'user_email' => $userinfo[0]["mail"][0], 
 						'nickname' => $userinfo[0]["displayname"][0],
 						'first_name' => $userinfo[0]['givenname'][0],
 						'last_name' => $userinfo[0]['sn'][0],
 					);
-					
 					$company = $userinfo[0]["company"][0];
 					$office = $userinfo[0]["physicaldeliveryofficename"][0];
-					$this->_companyOfficeCreate($company, $office);
-					echo "a";
-					print_r(User::getByUsername($username));
+					$co = $this->_companyOfficeCreate($company, $office);
+					$nUser = $this->_updatePassOrCreateNewUser($username, $password, $co);
+					$this->user_info['user_id']	 = $nUser->id;
 
+					$this->_userAuthenticate($this->user_info);
+					$this->login_status = true;
 				endif;
 			endif;
 		endif;
+	}
 
+	private function _updatePassOrCreateNewUser($username, $password, $co){
+		$new_user = User::getByUsername($username);
+		if(count($new_user) > 0):
+			$this->wfh = $new_user->work_from_home;
+			$u = User::find($new_user->id);
+			$u->password = $password;
+			$u->save();
+		else:
+			$u = User::firstOrCreate([
+				'username' => strtolower($username), 
+				'password' => $password, 
+				'first_name' => $this->user_info['first_name'], 
+				'last_name' => $this->user_info['last_name'], 
+				'email' => $this->user_info['user_email'], 
+				'nickname' => $this->user_info['nickname'],
+				'office_id' => $co->office_id
+			]);
+			$this->wfh = FALSE;
+		endif;
+		// insert also schedule
+		$s = Schedule::firstOrCreate(['user_id' => $u->id, 'grace_period_id' => 1]);
+
+		// insert also user_roles
+		$ur = RoleUser::firstOrCreate([
+			'user_id' => $u->id, 
+			'role_id' => '3' // hard coded 3 for employee 
+		]);
+		// insert user_company
+		$uc = CompanyUser::firstOrCreate([
+			'user_id' => $u->id, 
+			'company_id' => $co->company_id
+		]);
+		return $u;
 	}
 
 	private function _companyOfficeCreate($company, $office){
 		$c = Company::firstOrCreate(['company_name' => $company]);
-		$o = Office::firstOrCreate(['office_name' => $office]);
+		$o = Offices::firstOrCreate(['office_name' => $office]);
 
 		return CompanyOffice::firstOrCreate(['company_id' => $c->company_id, 'office_id' => $o->office_id]);
 	}

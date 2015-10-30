@@ -27,6 +27,7 @@ class Kernel extends HttpKernel {
 		'auth' => 'ESP\Http\Middleware\Authenticate',
 		'auth.basic' => 'Illuminate\Auth\Middleware\AuthenticateWithBasicAuth',
 		'guest' => 'ESP\Http\Middleware\RedirectIfAuthenticated',
+		'userAuth' => 'ESP\Http\Middleware\CustomAuthentication',
 	];
 
 }
