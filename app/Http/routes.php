@@ -37,7 +37,7 @@ Route::get('/logout', function(){
 Route::get('/user/logout/', function(){
 	return redirect('/logout');
 });
-
+Route::get('/testldap/', 'User\DashboardController@testLdap');
 
 Route::post('/user/login', 'User\LoginController@authenticate');
 

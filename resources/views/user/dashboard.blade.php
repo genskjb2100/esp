@@ -1,12 +1,13 @@
 @extends('layout.user')
 
 @section('content')	
+
 <div class="container container-spacer">
 	<div class="row">
 		<div class="col-md-6" align="middle" style="float:none;margin: 0 auto;">
 			<div class="panel panel-primary">
 				<div class="panel-heading">
-					<h3 class="panel-title">EMPLOYEE TIME CLOCK</h3>
+					<h3 class="panel-title">EMPLOYEE TIME CLOCK {!! $op_what !!}</h3>
 				</div>
 
 				<div class="panel-body">
@@ -26,7 +27,7 @@
 							<div class="alert alert-success log-time-start" role="alert" style="display:none;"></div>
 							<div class="alert alert-success log-time-finish" role="alert" style="display:none;"></div>
 
-							<input class="btn btn-lg btn-success btn-block museo_slab" type="button" id="start_day" value="Start Day">
+							<input {!! ($op_what == "FINISHED")? 'disabled="disabled"': ''; !!} class="btn btn-lg btn-success btn-block" type="button" id="start_day" value="Start Day">
 						</div>
 					</div>
 				</div>

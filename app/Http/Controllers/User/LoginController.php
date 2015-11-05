@@ -35,7 +35,7 @@ class LoginController extends Controller {
 										'contact_it' => 'Your account does not have the required details. Please contact IT.',
 										'redirect' => 'Your account is being redirected.',
 										'no_remote' => 'You are not authorised to login remotely. If this is incorrect please contact HR.',
-
+                                                                                'invalid' => 'Invalid Username or Password',
 									);
 	var $response_text;
 	var $response_status;
@@ -98,12 +98,12 @@ class LoginController extends Controller {
 			endif;
 
 			//todo WFH. SEARCH FOR VLANS
-			if ($this->wfh) :
+			if (!$this->wfh) :
 				// if user is allowed to work from home then check his IP
 				$user_ip_address = Request::getClientIp(true);
 				$tmpIP = $user_ip_address;
-	            $pos = strrpos($tmpIP, '.');
-	            $tmpIP = substr($tmpIP, 0, $pos). '.';
+                                $pos = strrpos($tmpIP, '.');
+                                $tmpIP = substr($tmpIP, 0, $pos). '.';
 				
 				$qry2 = "
 					SELECT * FROM vlans v 
@@ -112,14 +112,19 @@ class LoginController extends Controller {
 				";
 				$res2 = DB::select($qry2);
 				
-				if (count($res2) == 0 && ip2long($user_ip_address) != ip2long("127.0.0.1")) :
+				if (count($res2) == 0 && ip2long($user_ip_address)) :
 					$this->login_status = FALSE;
 					$this->response_text = 'You are not authorised to login remotely. If this is incorrect please contact HR.';
 					$this->response_status = 'failed';
 					Auth::logout();
-					
+                                        return array("status" => $this->response_status, "message" => $this->response_text);
 				endif;
 			endif;
+                        
+                        if(!$this->login_status):
+                           $this->response_status = 'failed';
+                           $this->response_text = $this->messages['invalid'];
+                        endif;
 			return array("status" => $this->response_status, "message" => $this->response_text);
 		/*else:
 			return array("status" => $this->response_status, "message" => $this->response_text);
