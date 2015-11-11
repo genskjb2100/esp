@@ -7,7 +7,7 @@
 		<div class="col-md-6" align="middle" style="float:none;margin: 0 auto;">
 			<div class="panel panel-primary">
 				<div class="panel-heading">
-					<h3 class="panel-title">EMPLOYEE TIME CLOCK {!! $op_what !!}</h3>
+					<h3 class="panel-title">EMPLOYEE TIME CLOCK</h3>
 				</div>
 
 				<div class="panel-body">
@@ -26,8 +26,10 @@
 							</div>
 							<div class="alert alert-success log-time-start" role="alert" style="display:none;"></div>
 							<div class="alert alert-success log-time-finish" role="alert" style="display:none;"></div>
-
-							<input {!! ($op_what == "FINISHED")? 'disabled="disabled"': ''; !!} class="btn btn-lg btn-success btn-block" type="button" id="start_day" value="Start Day">
+							<div class="alert alert-warning clock-alert" role="alert">
+								{!! $sched_status[$op_what] !!}
+							</div>
+							<input {!! ($op_what == "FINISHED" || $op_what == "FINISHED_ONCE")? 'disabled="disabled"': ''; !!} class="btn btn-lg btn-success btn-block" type="button" id="send_request" data-value="{!! ($op_what == 'TO_START') ? 1 : 0; !!}"  value="{!! ($op_what == 'TO_START')? 'Start Day' : 'Finish Day' !!}">
 						</div>
 					</div>
 				</div>
@@ -40,11 +42,17 @@
 <input type="hidden" id="servertime" value="{!! time() !!}" />
 <input type="hidden" id="servertime_ajax" value="" />
 {!!html_entity_decode(HTML::script('js/jqClock.min.js'))!!}
-
 {!!html_entity_decode(HTML::script('js/analog_clock.js'))!!}
+{!!html_entity_decode(HTML::script('js/lib/brain-socket.min.js'))!!}
 
 <script>
 // Initialize Analog Interactive Clock
+window.app = {};
+app.BrainSocket = new BrainSocket(
+    new WebSocket('ws://localhost:8081'),
+    new BrainSocketPubSub()
+);
+
 function Clock_dg(prop) {
     var angle = 360/60,
         date = new Date();
@@ -80,6 +88,30 @@ function refresh_digital_clock() {
 }
 $(function(){
 	refresh_digital_clock();
+	
+	
+	app.BrainSocket.Event.listen('generic.event',function(msg)
+	{
+	    console.log(msg);
+	});
+
+	app.BrainSocket.Event.listen('app.success',function(msg)
+	{
+	    console.log(msg);
+	});
+
+	app.BrainSocket.Event.listen('app.error',function(msg)
+	{
+	    console.log(msg);
+	});
+	
+	$("#send_request").click(function(e){
+		app.BrainSocket.message('generic.event',
+				{
+					'message':'a',
+				}
+		);
+	});
 });
 </script>
 @stop

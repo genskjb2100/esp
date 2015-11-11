@@ -19,3 +19,11 @@ body {
 body > .container{
 	padding-top: 125px;
 }
+.jqclock{
+	margin-left: 0px;
+	margin-right: 0px;
+	margin-bottom: 10px;
+}
+.clock-alert{
+	margin-bottom: 10px;
+}

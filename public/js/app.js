@@ -23,17 +23,17 @@ function showMessage(alert_class, alert_message, alert_type_class)
 
 function validateIE(alert_class)
 {
-	if (getInternetExplorerVersion() == -1) 
+    if (getInternetExplorerVersion() == -1) 
   {
-		// do nothing, not IE
+        // do nothing, not IE
     return;
-	} 
+    } 
   else if (getInternetExplorerVersion() != 11) 
   {
     resetAlertType(alert_class);
     $("."+alert_class).addClass('alert-warning').html(closeAlert+'For security purposes please upgrade to Internet Explorer 11 or use an alternative browser.').show();
     
-	}
+    }
 }
 
 function resetAlertType(alert_class)
