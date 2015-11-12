@@ -26,60 +26,53 @@
 							</div>
 							<div class="alert alert-success log-time-start" role="alert" style="display:none;"></div>
 							<div class="alert alert-success log-time-finish" role="alert" style="display:none;"></div>
-							<div class="alert alert-warning clock-alert" role="alert">
+							<div class="alert alert-warning" id="op_alert" role="alert" {!! ($op_what == "FINISHED" || $op_what == "TO_START") ? 'style="display:none;"' : ''; !!}>
 								{!! $sched_status[$op_what] !!}
 							</div>
-							<input {!! ($op_what == "FINISHED" || $op_what == "FINISHED_ONCE")? 'disabled="disabled"': ''; !!} class="btn btn-lg btn-success btn-block" type="button" id="send_request" data-value="{!! ($op_what == 'TO_START') ? 1 : 0; !!}"  value="{!! ($op_what == 'TO_START')? 'Start Day' : 'Finish Day' !!}">
+							<input {!! ($op_what == "FINISHED" || $op_what == "FINISHED_ONCE")? 'disabled="disabled"': ''; !!} {!! ($op_what == "FINISHED_ONCE")? 'style="display:none"' :''!!} class="btn btn-lg btn-success btn-block" type="button" id="send_request" data-value="{!! ($op_what == 'TO_START') ? 1 : 0; !!}"  value="{!! ($op_what == 'TO_START')? 'Start Day' : 'Finish Day' !!}">
 						</div>
 					</div>
 				</div>
 			</div>
 		</div>
 	</div>
+	@include('user.time_amendments')
+	
 </div>
-<script src="http://localhost:8080/js/moment.js"></script>
+
 
 <input type="hidden" id="servertime" value="{!! time() !!}" />
 <input type="hidden" id="servertime_ajax" value="" />
+<input type="hidden" id="tr_id" value="{!! Crypt::encrypt($time_registry_id) !!}" />
+<input type="hidden" id="_token" name="_token" value="<?php echo csrf_token(); ?>">
 {!!html_entity_decode(HTML::script('js/jqClock.min.js'))!!}
+{!!html_entity_decode(HTML::script('js/moment.js'))!!}
 {!!html_entity_decode(HTML::script('js/analog_clock.js'))!!}
-{!!html_entity_decode(HTML::script('js/lib/brain-socket.min.js'))!!}
 
-<script>
+<script language="javascript">
+var _token = $("#_token").val();
+
 // Initialize Analog Interactive Clock
-window.app = {};
-app.BrainSocket = new BrainSocket(
-    new WebSocket('ws://localhost:8081'),
-    new BrainSocketPubSub()
-);
-
 function Clock_dg(prop) {
     var angle = 360/60,
         date = new Date();
-        var h = date.getHours();
-    //alert(h);
-    h = 3;
-        if(h > 12) {
-            h = h - 12;
-        }
+	var h = date.getHours();
+    if(h > 12) {
+        h = h - 12;
+    }
 
-        hour = h;
-        //minute = date.getMinutes(),
-    minute = 57,
-    
-        second = date.getSeconds(),
-    //alert(second);
-    //second = 5,
-        hourAngle = (360/12) * hour + (360/(12*60)) * minute;
+    hour = h;
+	minute = 57,
+    second = date.getSeconds(),
+    hourAngle = (360/12) * hour + (360/(12*60)) * minute;
 
-        $('#minute')[0].style[prop] = 'rotate('+angle * minute+'deg)';
-        $('#second')[0].style[prop] = 'rotate('+angle * second+'deg)';
-        $('#hour')[0].style[prop] = 'rotate('+hourAngle+'deg)';
+    $('#minute')[0].style[prop] = 'rotate('+angle * minute+'deg)';
+    $('#second')[0].style[prop] = 'rotate('+angle * second+'deg)';
+    $('#hour')[0].style[prop] = 'rotate('+hourAngle+'deg)';
 }
 
 function refresh_digital_clock() {
   //clocktime
-  
   servertime = parseFloat( $("input#servertime").val() ) * 1000;
   $('#clock1').clock({
     "calendar":"true", 
@@ -88,29 +81,35 @@ function refresh_digital_clock() {
 }
 $(function(){
 	refresh_digital_clock();
-	
-	
-	app.BrainSocket.Event.listen('generic.event',function(msg)
-	{
-	    console.log(msg);
-	});
-
-	app.BrainSocket.Event.listen('app.success',function(msg)
-	{
-	    console.log(msg);
-	});
-
-	app.BrainSocket.Event.listen('app.error',function(msg)
-	{
-	    console.log(msg);
-	});
-	
 	$("#send_request").click(function(e){
-		app.BrainSocket.message('generic.event',
-				{
-					'message':'a',
+		var what = $(this).attr('data-value');
+		var tr_id = $("#tr_id").val();
+		$.ajax({
+			url : "{!! url('user/time_entry') !!}",
+			type: 'post',
+			data : { 'what' : what, '_token' : _token, 'tr_id' : tr_id },
+		}).done(function(obj){
+			if(obj.status == "success"){
+				$("#tr_id").val(obj.tr_id);
+				$("#op_alert").html(obj.msg).show();
+				switch(obj.op_what){
+					case 'FINISHED': 
+						$("#top_alert").hide();
+						$("#send_request").attr("data-value", 0).prop('disabled', true).hide();
+					break;
+					case 'FINISHED_ONCE':
+						$("#send_request").attr("data-value", 0).prop('disabled', true).hide();
+					break;
+					case 'FINISHED_FORGOT':
+						$("#send_request").attr("data-value", 1).prop('disabled', false).show().val('Start day');
+						$("#op_alert").delay(1000).fadeOut(600);
+					break;
+					case 'STARTED':
+						$("#send_request").attr("data-value", 0).prop('disabled', false).show().val('Finish day');;
+					break;
 				}
-		);
+			}
+		});
 	});
 });
 </script>

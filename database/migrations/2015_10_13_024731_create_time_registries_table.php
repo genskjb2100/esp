@@ -18,6 +18,7 @@ class CreateTimeRegistriesTable extends Migration {
 			$table->string('status');
 			$table->timestamp('start_timestamp');
 			$table->timestamp('end_timestamp');
+			$table->string('ip');
 			$table->integer('user_id')->unsigned();
 			$table->foreign('user_id')->references('id')->on('users')->onUpdate('cascade')->onDelete('cascade');
 			$table->integer('status_id')->unsigned();

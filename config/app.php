@@ -78,7 +78,7 @@ return [
 	|
 	*/
 
-	'key' => env('APP_KEY', '5xo1vLaw268mv'),
+	'key' => env('APP_KEY', '5xo1vLaw268mv/(65Jo1vL-wN68mv/(s'),
 
 	'cipher' => MCRYPT_RIJNDAEL_128,
 
@@ -146,7 +146,7 @@ return [
 		'ESP\Providers\EventServiceProvider',
 		'ESP\Providers\RouteServiceProvider',
 
-		'BrainSocket\BrainSocketServiceProvider',
+		
 
 	],
 
@@ -197,7 +197,7 @@ return [
 		'View'      => 'Illuminate\Support\Facades\View',
 		'Form'		=> 'Illuminate\Html\FormFacade',
 		'HTML'		=> 'Illuminate\Html\HtmlFacade',
-		'BrainSocket'     => 'BrainSocket\BrainSocketFacade',
+		
 
 	],
 

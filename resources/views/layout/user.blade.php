@@ -37,6 +37,7 @@
 <!-- Header Main Menu -->
 @include('user.header')
 
+
 <!-- Content -->
 @yield('content')
 

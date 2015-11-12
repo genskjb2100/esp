@@ -13,7 +13,9 @@ body {
 	content:"\e080";
 }
 .tr_field_color th {
-	color:#7F7FBF;
+	color:#FFFFFF;
+	font-weight: 400;
+	text-align: center;
 }
 
 body > .container{
@@ -26,4 +28,27 @@ body > .container{
 }
 .clock-alert{
 	margin-bottom: 10px;
+}
+
+#topnavbar.affix {
+    position: fixed;
+    top: 0;
+    width: 100%;
+}
+
+.glyphicon {
+	color:#3E9DD7;
+}
+.glyphicon:hover {
+	color:#3E9DD7;
+}
+.panel-heading a::after {
+	float:left;
+	color: white;
+}
+.clickable{
+	cursor: pointer;
+}
+.tr_field_color{
+	background: #5b5b5b;
 }

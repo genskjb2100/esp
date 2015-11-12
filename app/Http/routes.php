@@ -28,9 +28,10 @@ Route::any('/user/', function(){
 });
 
 Route::get('user/dashboard', 'User\DashboardController@index');
-
+Route::post('user/time_entry', 'User\DashboardController@time_entry');
 Route::get('/logout', function(){
 	Auth::logout();
+	Session::flush();
 	return redirect('/');
 });
 
