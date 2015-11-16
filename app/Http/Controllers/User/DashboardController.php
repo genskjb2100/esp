@@ -15,6 +15,7 @@ use ESP\CompanyUser;
 use ESP\RoleUser;*/
 use ESP\Schedule;
 use ESP\TimeRegistry;
+use ESP\TimeAmmendment;
 
 
 // for DB connection. Edit also .env file in /var/www/laravel
@@ -59,8 +60,45 @@ class DashboardController extends Controller {
         //echo "<pre>"; print_r($this->sched_status);exit();        
 		$view = View::make('user.dashboard')->with($data);
         $view['sched_status'] = $this->sched_status;
+        $view['time_records'] = TimeRegistry::get_time_ammendments($user_id);
+        //echo "<pre>";print_r($view['time_records']);exit();
 		return $view;
 	}
+
+    public function request_amendment(){
+       
+        $data = $this->_prepareAmendmentData();
+        foreach($data as $record):
+            $ta = TimeAmmendment::create($record);
+        endforeach;
+        return array("status" => "success", "msg" => "Your request has been sent and ready for review from the client.", "callback_data" => $data);
+    }
+
+    private function _prepareAmendmentData(){
+        //print_r(Request::all());
+        $data = array();
+        foreach(Request::get('tr_id') as $i => $val):
+            $data[$i]['time_registry_id'] = Crypt::decrypt($val);
+            $data[$i]['user_id'] = Session::get('user_id');
+            $data[$i]['status'] = 'pending';
+        endforeach;
+        foreach(Request::get('original_start') as $i => $val):
+            $data[$i]['original_start'] = $val;
+        endforeach;
+        foreach(Request::get('original_end') as $i => $val):
+            $data[$i]['original_end'] = $val;
+        endforeach;
+        foreach(Request::get('ammended_start') as $i => $val):
+            $data[$i]['ammended_start'] = $val;
+        endforeach;
+        foreach(Request::get('ammended_end') as $i => $val):
+            $data[$i]['ammended_finish'] = $val;
+        endforeach;
+        foreach(Request::get('user_notes') as $i => $val):
+            $data[$i]['user_notes'] = $val;
+        endforeach;
+        return $data;
+    }
 
     public function testLdap(){
         $ad = new adLDAP();
@@ -134,7 +172,7 @@ class DashboardController extends Controller {
                 $data['forgot_logout'] = TRUE;
                 $data['op_what'] = 'FORGOT_LOGOUT';
                 $data['start_timestamp_forgot'] = date("g:i a l M j", strtotime($TimeRegistry->start_timestamp));
-                $this->sched_status['FORGOT_LOGOUT'] = 'You did not finish time last <b>'.$data['start_timestamp_forgot'].'</b>. Please click finish day.';
+                $this->sched_status['FORGOT_LOGOUT'] = 'You did not finish time last <b>'.$data['start_timestamp_forgot'].'</b>. ';
             elseif($data['status'] == 'finish day' && $data['finish_day'] == $data['today'] && $data['start_day'] != $data['today']):
                 $data['op_what'] = 'FINISHED';
                 $data['forgot_logout'] = FALSE;
@@ -151,7 +189,7 @@ class DashboardController extends Controller {
             $data['forgot_logout'] = FALSE;
         endif;
 
-        if($data['op_what'] == "FINISHED" && $data['finish_day'] == $data['today']):
+        if(($data['op_what'] == "FINISHED" && $data['finish_day'] == $data['today']) || $data['op_what'] == "FORGOT_LOGOUT"):
             $data['op_what'] = "TO_START";
             $data['time_registry_id'] = NULL;
         endif;

@@ -18,35 +18,30 @@ Route::get('/', function(){
         return View::make('user.user_login');
     endif;
 });
-
 Route::get('/user/login/', function(){
 	return redirect('/');
 });
-
 Route::any('/user/', function(){
 	return redirect('/');
 });
-
+Route::any('/user/request_amendment', 'User\DashboardController@request_amendment');
 Route::get('user/dashboard', 'User\DashboardController@index');
 Route::post('user/time_entry', 'User\DashboardController@time_entry');
+Route::post('/user/login', 'User\LoginController@authenticate');
+
 Route::get('/logout', function(){
 	Auth::logout();
 	Session::flush();
 	return redirect('/');
 });
-
 Route::get('/user/logout/', function(){
 	return redirect('/logout');
 });
+
+
+
+
 Route::get('/testldap/', 'User\DashboardController@testLdap');
-
-Route::post('/user/login', 'User\LoginController@authenticate');
-
-
-
-
-
-
 Route::controllers([
 	'auth' => 'Auth\AuthController',
 	'password' => 'Auth\PasswordController',

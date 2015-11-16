@@ -4,7 +4,7 @@
 
 <div class="container container-spacer">
 	<div class="row">
-		<div class="col-md-6" align="middle" style="float:none;margin: 0 auto;">
+		<div class="col-md-5" align="middle" style="float:none;margin: 0 auto;">
 			<div class="panel panel-primary">
 				<div class="panel-heading">
 					<h3 class="panel-title">EMPLOYEE TIME CLOCK</h3>
@@ -29,7 +29,7 @@
 							<div class="alert alert-warning" id="op_alert" role="alert" {!! ($op_what == "FINISHED" || $op_what == "TO_START") ? 'style="display:none;"' : ''; !!}>
 								{!! $sched_status[$op_what] !!}
 							</div>
-							<input {!! ($op_what == "FINISHED" || $op_what == "FINISHED_ONCE")? 'disabled="disabled"': ''; !!} {!! ($op_what == "FINISHED_ONCE")? 'style="display:none"' :''!!} class="btn btn-lg btn-success btn-block" type="button" id="send_request" data-value="{!! ($op_what == 'TO_START') ? 1 : 0; !!}"  value="{!! ($op_what == 'TO_START')? 'Start Day' : 'Finish Day' !!}">
+							<input {!! ($op_what == "FINISHED" || $op_what == "FINISHED_ONCE")? 'disabled="disabled"': ''; !!} {!! ($op_what == "FINISHED_ONCE")? 'style="display:none"' :''!!} class="btn btn-lg btn-success btn-block" type="button" id="send_request" data-value="{!! ($op_what == 'TO_START' || $op_what == 'FORGOT_LOGOUT') ? 1 : 0; !!}"  value="{!! ($op_what == 'TO_START' || $op_what =='FORGOT_LOGOUT')? 'Start Day' : 'Finish Day' !!}">
 						</div>
 					</div>
 				</div>

@@ -52,3 +52,16 @@ body > .container{
 .tr_field_color{
 	background: #5b5b5b;
 }
+#time-amendments-table{
+	border-top:1px solid #DDDDDD;border-bottom:1px solid #DDDDDD;
+}
+#time-amendments-table tr td{
+	text-align: center;
+}
+#time-amendments-table tr td .form-group{
+	position: relative;
+}
+
+.container{
+	width: 95%;
+}

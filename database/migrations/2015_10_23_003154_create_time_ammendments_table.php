@@ -17,7 +17,7 @@ class CreateTimeAmmendmentsTable extends Migration {
 			$table->increments('time_ammendment_id');
 			$table->string('status');
 			$table->timestamp('original_start');
-			$table->timestamp('original_finnish');
+			$table->timestamp('original_finish');
 			$table->timestamp('ammended_start');
 			$table->timestamp('ammended_finish');
 			$table->string('user_notes');
