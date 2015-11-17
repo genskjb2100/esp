@@ -82,6 +82,9 @@ class DashboardController extends Controller {
             $data[$i]['user_id'] = Session::get('user_id');
             $data[$i]['status'] = 'pending';
         endforeach;
+        foreach(Request::get('row_id') as $i => $val):
+            $data[$i]['row_id'] = $val;
+        endforeach;
         foreach(Request::get('original_start') as $i => $val):
             $data[$i]['original_start'] = $val;
         endforeach;

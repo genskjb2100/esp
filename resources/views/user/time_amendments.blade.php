@@ -41,7 +41,7 @@
 								@foreach ($time_records as $i => $record)
 									<tr id="row_{!! $i + 1; !!}">
 										<td>
-											<input type="hidden" class="row_id[]" id="r_{!! $i + 1; !!}" value="{!! $i + 1; !!}" disabled required />
+											<input type="hidden" name="row_id[]" class="row_id" id="r_{!! $i + 1; !!}" value="{!! $i + 1; !!}" disabled required />
 											<input type="checkbox" class="enable_row" id="checkbox_{!! $i + 1; !!}" {!! ($record->ta_status != "") ? "disabled" : "" !!}/>
 											<input type="hidden" name="tr_id[]" class="tr_id" disabled value="{!! Crypt::encrypt($record->time_registry_id); !!}" required />
 											<input type="hidden" name="ta_id[]" class="ta_id" disabled value="{!! Crypt::encrypt($record->time_ammendment_id); !!}" required />
@@ -94,7 +94,7 @@
     			$("#request_amendment").prop("disabled", true);
     		}
     	 	var id = $(this).attr("id").substr(9);
-    	 	var elems = $("#row_"+id+ " .end_timestamp, #row_"+id+ " .start_timestamp, #row_"+id+ " .user_notes, #row_"+id+ " .tr_id, #row_"+id+ " .ta_id");
+    	 	var elems = $("#row_"+id+ " .end_timestamp, #row_"+id+ " .start_timestamp, #row_"+id+ " .user_notes, #row_"+id+ " .tr_id, #row_"+id+ " .ta_id, #row_"+id+" .row_id");
     	 	if($(this).is(":checked")){
     	 		elems.prop("disabled", false);
     	 	}else{
@@ -117,8 +117,13 @@
 			var user_notes = [];
 			var tr_id = [];
 			var ta_id = [];
+			var row_id = [];
 
 			//console.log($(".start_datetimepicker:not([disabled])").length);
+			$(".row_id:not([disabled])").each(function(i){
+				row_id.push($(this).val());
+			});
+
 			$(".original_start:not([disabled])").each(function(i){
 				orig_start.push($(this).val());
 			});
@@ -152,6 +157,7 @@
 			data = {
 				"_token" : _token,
 				"tr_id" : tr_id,
+				"row_id" : row_id,
 				"ta_id" : ta_id,
 				"original_start" : orig_start,
 				"original_end" : orig_end,
@@ -166,7 +172,7 @@
 				data: data,
 			}).done(function(obj){
 				$.each(obj.callback_data, function(x,y){
-					$("#row_"+(x+1)+" .amend_status").html(y.status);
+					$("#row_"+y.row_id+" .amend_status").html(y.status);
 				});
 			});
 		});
