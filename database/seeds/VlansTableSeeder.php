@@ -1,0 +1,17 @@
+<?php
+
+use Illuminate\Database\Seeder;
+
+// composer require laracasts/testdummy
+use Laracasts\TestDummy\Factory as TestDummy;
+
+class VlansTableSeeder extends Seeder
+{
+    public function run()
+    {
+        // TestDummy::times(20)->create('App\Post');
+         DB::table('vlans')->insert([
+        	array('subnet' => '127.0.0.1', 'office_id' => 1)
+    	]);
+    }
+}

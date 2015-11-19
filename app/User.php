@@ -42,6 +42,14 @@ class User extends Model implements AuthenticatableContract, CanResetPasswordCon
 		return $query->where('password', '=', $password);
 	}
 
+	public function scopeClientUsername($query, $username){
+		return $query->where('client_email', '=', $username);
+	}
+
+	public function scopeClientPassword($query, $password){
+		return $query->where('client_password', '=', $password);
+	}
+
 	public static function get_employee_username_password($username, $password) {
 		return DB::table('users as u')
 				->join('role_user as ur', 'ur.user_id', '=', 'u.id')
@@ -56,4 +64,8 @@ class User extends Model implements AuthenticatableContract, CanResetPasswordCon
 		return DB::table('users')->select('*')->where('username', '=', $username)->first();
 	}
 
+	public function roles()
+    {
+        return $this->belongsToMany('ESP\Roles', 'role_user', 'user_id', 'role_id');
+    }
 }

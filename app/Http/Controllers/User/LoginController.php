@@ -76,56 +76,57 @@ class LoginController extends Controller {
 
 	public function authenticate(){
 		/*if (Request::ajax()):*/
-			$isAccountActive = FALSE;
-			$adldap = new adLDAP();
-			$username = Request::input('username');
-			$password = md5(Request::input('password'));
-			$authUser = $adldap->authenticate($username, Request::input('password'));
+		$isAccountActive = FALSE;
+		$adldap = new adLDAP();
+		$username = Request::input('username');
+		$password = md5(Request::input('password'));
+		$authUser = $adldap->authenticate($username, Request::input('password'));
 
-			if($authUser && $this->login_status):
-				$user_fields = array(
-						'displayname', 'mail','company', 'physicaldeliveryofficename', 'givenname', 'sn'
-					);
-				
-				$this->user_info = $adldap->user()->info($username, $user_fields); //working
-				$this->_processUser($username, $password);
+		if($authUser && $this->login_status):
+			$user_fields = array(
+					'displayname', 'mail','company', 'physicaldeliveryofficename', 'givenname', 'sn'
+				);
+			
+			$this->user_info = $adldap->user()->info($username, $user_fields); //working
+			$this->_processUser($username, $password);
 
-				//return array("status" => $this->response_status, "message" => $this->response_text);
-			else:
+			//return array("status" => $this->response_status, "message" => $this->response_text);
+		else:
+			$this->login_status = FALSE;
+			$this->_check_failed_login_duration($username);
+			//return array("status" => $this->response_status, "message" => $this->response_text);
+		endif;
+
+		//todo WFH. SEARCH FOR VLANS
+		if (!$this->wfh) :
+			// if user is allowed to work from home then check his IP
+			$user_ip_address = Request::getClientIp(true);
+			$tmpIP = $user_ip_address;
+                            $pos = strrpos($tmpIP, '.');
+                            $tmpIP = substr($tmpIP, 0, $pos). '.';
+			
+			$qry2 = "
+				SELECT * FROM vlans v 
+				INNER JOIN offices o ON v.office_id = o.office_id 
+				WHERE subnet like '".$tmpIP."%';
+			";
+			$res2 = DB::select($qry2);
+			
+			if (count($res2) == 0 && ip2long($user_ip_address)) :
 				$this->login_status = FALSE;
-				$this->_check_failed_login_duration($username);
-				//return array("status" => $this->response_status, "message" => $this->response_text);
+				$this->response_text = 'You are not authorised to login remotely. If this is incorrect please contact HR.';
+				$this->response_status = 'failed';
+				Auth::logout();
+                return array("status" => $this->response_status, "message" => $this->response_text);
 			endif;
-
-			//todo WFH. SEARCH FOR VLANS
-			if (!$this->wfh) :
-				// if user is allowed to work from home then check his IP
-				$user_ip_address = Request::getClientIp(true);
-				$tmpIP = $user_ip_address;
-                                $pos = strrpos($tmpIP, '.');
-                                $tmpIP = substr($tmpIP, 0, $pos). '.';
-				
-				$qry2 = "
-					SELECT * FROM vlans v 
-					INNER JOIN offices o ON v.office_id = o.office_id 
-					WHERE subnet like '".$tmpIP."%';
-				";
-				$res2 = DB::select($qry2);
-				
-				if (count($res2) == 0 && ip2long($user_ip_address)) :
-					$this->login_status = FALSE;
-					$this->response_text = 'You are not authorised to login remotely. If this is incorrect please contact HR.';
-					$this->response_status = 'failed';
-					Auth::logout();
-                                        return array("status" => $this->response_status, "message" => $this->response_text);
-				endif;
-			endif;
-                        
-                        if(!$this->login_status):
-                           $this->response_status = 'failed';
-                           $this->response_text = $this->messages['invalid'];
-                        endif;
-			return array("status" => $this->response_status, "message" => $this->response_text);
+		endif;
+                    
+        if(!$this->login_status):
+           $this->response_status = 'failed';
+           $this->response_text = $this->messages['invalid'];
+        endif;
+        
+		return array("status" => $this->response_status, "message" => $this->response_text);
 		/*else:
 			return array("status" => $this->response_status, "message" => $this->response_text);
 		endif;*/
@@ -190,9 +191,16 @@ class LoginController extends Controller {
 					$co = $this->_companyOfficeCreate($company, $office);
 					$nUser = $this->_updatePassOrCreateNewUser($username, $password, $co);
 					$this->user_info['user_id']	 = $nUser->id;
+					$this->user_info['role_id'] = 2;
+					$this->user_info['disabled'] = 1;
+					$this->user_info['work_from_home'] = 0;
+					$this->user_info['birthdate'] = '0000-00-00';
+					$this->user_info['hidden'] = 0;
+					$this->response_text = $this->messages['redirect'];
+					$this->response_status = "success";
 
 					$this->_userAuthenticate($this->user_info);
-					$this->login_status = true;
+					$this->login_status = TRUE;
 				endif;
 			endif;
 		endif;
@@ -211,20 +219,22 @@ class LoginController extends Controller {
 				'password' => $password, 
 				'first_name' => $this->user_info['first_name'], 
 				'last_name' => $this->user_info['last_name'], 
-				'email' => $this->user_info['user_email'], 
+				'email' => strtolower($this->user_info['user_email']), 
 				'nickname' => $this->user_info['nickname'],
 				'office_id' => $co->office_id
 			]);
 			$this->wfh = FALSE;
 		endif;
+
 		// insert also schedule
 		$s = Schedule::firstOrCreate(['user_id' => $u->id, 'grace_period_id' => 1]);
-
+		
 		// insert also user_roles
 		$ur = RoleUser::firstOrCreate([
 			'user_id' => $u->id, 
 			'role_id' => '3' // hard coded 3 for employee 
 		]);
+		
 		// insert user_company
 		$uc = CompanyUser::firstOrCreate([
 			'user_id' => $u->id, 

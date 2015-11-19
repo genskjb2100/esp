@@ -11,6 +11,7 @@
 |
 */
 
+/*user route collection */
 Route::get('/', function(){
 	if (Auth::check()):
         return redirect('user/dashboard');
@@ -37,11 +38,19 @@ Route::get('/logout', function(){
 Route::get('/user/logout/', function(){
 	return redirect('/logout');
 });
-
+Route::get('/client/logout/', function(){
+	return redirect('/logout');
+});
 
 
 
 Route::get('/testldap/', 'User\DashboardController@testLdap');
+
+Route::get('/client/', 'Client\LoginController@index');
+Route::post('/client/login', 'Client\LoginController@authenticate');
+Route::get('/client/dashboard', function(){
+	print_r(Session::all());
+});
 Route::controllers([
 	'auth' => 'Auth\AuthController',
 	'password' => 'Auth\PasswordController',

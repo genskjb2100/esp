@@ -49,7 +49,7 @@ $(function(){
 
     if($("#username").val() == '' || $("#password").val() == '')
     {
-      showMessage('alert', "All Fields are required.", "alert-danger");
+      showMessage('alert', "All fields are required.", "alert-danger");
     }else{
       $.ajax({
         url: $(this).attr("action"),

@@ -108,6 +108,9 @@ $(function(){
 						$("#send_request").attr("data-value", 0).prop('disabled', false).show().val('Finish day');;
 					break;
 				}
+				setTimeout(function(){
+					location.reload();
+				}, 3000);
 			}
 		});
 	});

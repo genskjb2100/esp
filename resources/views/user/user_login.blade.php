@@ -12,7 +12,7 @@
 			<div class="panel-body">
 				<!--<form accept-charset="UTF-8" role="form">-->
 				
-				<div class="alert" style="display:none;">
+				<div class="alert-wrapper">
 				</div>
 				
 				<fieldset>
